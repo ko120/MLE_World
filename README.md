@@ -76,6 +76,10 @@ WORLD_URL=http://world-host:8001/v1
 Each regime runs seven configurations on 17 tasks with seeds 34, 35, and 36: 357 trials with a 12-hour limit each.
 The [paper configuration](configs/paper.yaml) defines the tasks, budgets, and [gate settings](configs/gates/).
 
+`RUN_OPTIONS` is a Bash array that stores the options shared by both commands.
+`"${RUN_OPTIONS[@]}"` passes each array item as a separate command argument.
+Run this block in the same Bash session as the setup commands above.
+
 ```bash
 RUN_OPTIONS=(
   --grade
