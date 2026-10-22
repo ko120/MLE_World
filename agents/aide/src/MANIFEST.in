@@ -1,0 +1,2 @@
+include README.md LICENSE requirements*.txt
+recursive-include aide *.yaml *.json *.html *.js *.css *.csv *.txt *.md

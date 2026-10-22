@@ -1,0 +1,4 @@
+# Complete agent and competition execution environment.
+-r requirements-agent.txt
+-r requirements-execution.txt
+-r requirements-dev.txt

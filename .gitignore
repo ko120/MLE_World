@@ -1,0 +1,28 @@
+# Runtime files and local inputs
+/runs/
+/logs/
+/cache/
+/data/
+/data_privateonly/
+/models/
+/outputs/
+*.sqsh
+.env
+.env.*
+.venv*
+venv/
+mlebench/competitions/**/kernels/
+
+# Python build and test files
+__pycache__/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+*.log
+.ipynb_checkpoints/

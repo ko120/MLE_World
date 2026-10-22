@@ -1,0 +1,57 @@
+schema_version: 1
+profile:
+  kwargs_type: omegaconf
+  env_vars:
+    TIME_LIMIT_SECS: '43200'
+    STEP_LIMIT: '1000000'
+    AIDE_DRAFT_MAX_TOKENS: '16384'
+    AIDE_SAMPLING: '{"temperature":1.0,"top_p":0.95,"top_k":40,"min_p":0.0,"max_tokens":8192}'
+    AIDE_MODEL_SAMPLING: '{"gpt-coderbf16-fb-vllm":{"temperature":1.0,"top_p":0.95,"top_k":40,"min_p":0.0,"max_tokens":32768}}'
+    AIDE_SHUTDOWN_RESERVE_S: '480'
+  kwargs:
+    agent.search.num_drafts: 5
+    agent.search.max_debug_depth: 3
+    agent.search.debug_prob: 0.5
+    agent.search.greedy_prob: 0.7
+    agent.time_limit: 43200
+    agent.steps: 1000000
+    exec.timeout: 3400
+    copy_data: false
+    agent.convert_system_to_user: true
+    agent.code.model: gpt-qwen3-vllm
+    agent.bon_candidate_review: true
+    agent.use_listwise_p_clean: false
+    agent.use_p_clean_argmax_pick: false
+    agent.improve_plan_axes: false
+    agent.real_validation_p_max_threshold: 'null'
+    agent.record_test_metric: true
+    agent.record_execution_cost: true
+    agent.check_data_leakage: true
+    agent.leakage_review_best: true
+    agent.leakage_reject_on_model: true
+    agent.submission_reject_on_model: true
+    agent.submission_review_temperature: 0.0
+    agent.ucb.metric_posterior.enabled: false
+    agent.feedback.model: gpt-coderbf16-fb-vllm
+    agent.best_of_n_size: 1
+    exec.simulator: false
+    exec.simulator_model: 'null'
+    exec.simulator_only: false
+    agent.bon_oracle: real
+    agent.use_best_of_n_listwise: false
+    agent.use_validate_on_best: false
+    agent.stage_policy.draft: single
+    agent.stage_policy.debug: single
+    agent.stage_policy.improve: single
+provenance:
+  cohort: stage_policy_sim8h_20260917
+  profile: aide-qwen3-vllm-baseline-adapted-policybase-real8h
+  configuration_sha256: abe16b5ce690aed7512a62f2da994567db5b945f7882935fc7f5278999e0ba22
+  historical_aide_sha256: 060109eafb3f8f73c1e23a7dc7371cb2ddf7dabb4e889611c78cb647daca869b
+  normalized_fields:
+  - AIDE_MODEL_BASE_URLS
+  - AIDE_SIMULATOR_BASE_URL
+  - OPENAI_API_KEY
+  - OPENAI_BASE_URL
+  - dockerfile
+  - start

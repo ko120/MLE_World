@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = 'mlebench'
+readme = "README.md"
+requires-python = ">=3.11"
+version = "1.0.0"
+dependencies = [
+  "appdirs>=1.4.4",
+  "docker>=7.1",
+  "kaggle>=1.6,<1.7",
+  "numpy>=1.26",
+  "pandas>=2.1.4",
+  "pyyaml>=6.0",
+  "py7zr>=0.21",
+  "scikit-learn>=1.5",
+  "pillow>=10.3",
+  "scipy>=1.11",
+  "tqdm>=4.66",
+  "flask>=3.0",
+  "tenacity>=8.5.0",
+  "diskcache>=5.6.3",
+]
+
+[tool.setuptools]
+# namespaces = false is load-bearing: with the pyproject default (true) setuptools
+# uses PEP420PackageFinder, which treats every directory as a candidate package and
+# so walks the whole repo -- including runs/ and cache/ -- before applying `include`.
+# On an NFS home that turns `pip install -e .` into a ~30 minute stat storm.
+packages = { find = { where = ["."], include = ["mlebench", "mlebench.*"], namespaces = false } }
+
+[project.scripts]
+mlebench = "mlebench.cli:main"
+
+[project.optional-dependencies]
+formatters = ["black>=23.3", "isort>=5.13"]
+dev = ["pytest>=8.2", "mypy>=1.10", "pre-commit>=3.7"]
+# Only the historical TFRecord utility needs TensorFlow. None of the 17 paper
+# tasks require it in the harness; execution-image dependencies are separate.
+tensorflow = ["tensorflow>=2.16"]
+
+[tool.setuptools.package-data]
+mlebench = ["competitions/**/*"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["**/__pycache__/*", "**/*.pyc"]
+
+[tool.black]
+line-length = 100 # match the precommit
+
+[tool.pytest.ini_options]
+# Pytest can take a long time to collect test cases
+# when many Kaggle competitions have been downloaded.
+# We avoid this up by telling Pytest where the
+# tests live ahead of time.
+testpaths = ["tests", "agents/aide/src/aide/tests"]
+pythonpath = [".", "agents/aide/src"]
+

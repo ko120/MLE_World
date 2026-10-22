@@ -1,0 +1,9 @@
+schema_version: 1
+extends: ../policies/ucb_judge_beta05.yaml
+overrides:
+  kwargs:
+    agent.execution_gate.enabled: true
+    agent.execution_gate.mode: confidence
+    agent.execution_gate.success_threshold: 0.5
+    agent.execution_gate.failure_threshold: 0.56
+    agent.execution_gate.random_check_probability: 'null'

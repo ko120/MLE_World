@@ -1,0 +1,6 @@
+{
+    "mem_limit": "60g",
+    "shm_size": "16G",
+    "nano_cpus": 8e9,
+    "runtime": "runc"
+}

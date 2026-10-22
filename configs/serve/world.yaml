@@ -1,0 +1,22 @@
+# Execution prediction: MLE-World checkpoint-6685; one GPU.
+# Set the model path with --model.
+vllm_server:
+  tensor_parallel_size: 1
+  pipeline_parallel_size: 1
+  data_parallel_size: 1
+  max_model_len: 32768
+  max_num_seqs: 32
+  max_num_batched_tokens: 32768
+  gpu_memory_utilization: 0.7
+  trust_remote_code: true
+  dtype: bfloat16
+  use_flashinfer_sampler: false
+  gdn_prefill_backend: triton
+  enable_prefix_caching: true
+  enable_chunked_prefill: true
+  logprobs_mode: raw_logprobs
+  max_logprobs: 82
+  extra_args:
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": false}'
+  - --language-model-only

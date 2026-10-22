@@ -1,0 +1,89 @@
+schema_version: 1
+name: paper
+source_base: ..
+tasks:
+- aerial-cactus-identification
+- denoising-dirty-documents
+- detecting-insults-in-social-commentary
+- dog-breed-identification
+- dogs-vs-cats-redux-kernels-edition
+- jigsaw-toxic-comment-classification-challenge
+- leaf-classification
+- mlsp-2013-birds
+- new-york-city-taxi-fare-prediction
+- nomad2018-predict-transparent-conductors
+- plant-pathology-2020-fgvc7
+- random-acts-of-pizza
+- spooky-author-identification
+- tabular-playground-series-dec-2021
+- tabular-playground-series-may-2022
+- text-normalization-challenge-english-language
+- text-normalization-challenge-russian-language
+seeds:
+- 34
+- 35
+- 36
+trial_seconds: 43200
+shutdown_reserve_seconds: 480
+execution_timeout_seconds: 3400
+models:
+  coder: Qwen3.5-9B
+  feedback: Qwen3-Coder-Next BF16
+  world: Qwen3.5-4B MLE-World checkpoint-6685
+arms:
+- id: bon_metric_argmax
+  regime: ungated
+  policy: bon_metric_argmax
+  configuration: policies/bon_metric_argmax.yaml
+- id: bon_metric_argmax_s50_f56
+  regime: gated
+  policy: bon_metric_argmax
+  configuration: gates/bon_metric_argmax_s50_f56.yaml
+- id: debug_pclean
+  regime: ungated
+  policy: ucb_judge_beta05
+  configuration: policies/ucb_judge_beta05.yaml
+- id: debug_pclean_s50_f83
+  regime: gated
+  policy: ucb_judge_beta05
+  configuration: gates/ucb_judge_beta05_s50_f83.yaml
+- id: seq
+  regime: ungated
+  policy: seq
+  configuration: policies/seq.yaml
+- id: pairwise
+  regime: ungated
+  policy: pairwise
+  configuration: policies/pairwise.yaml
+- id: fuse
+  regime: ungated
+  policy: fuse
+  configuration: policies/fuse.yaml
+- id: seq_s50_f56
+  regime: gated
+  policy: seq
+  configuration: gates/seq_s50_f56.yaml
+- id: pairwise_s50_f56
+  regime: gated
+  policy: pairwise
+  configuration: gates/pairwise_s50_f56.yaml
+- id: fuse_s50_f83
+  regime: gated
+  policy: fuse
+  configuration: gates/fuse_s50_f83.yaml
+- id: base
+  regime: ungated
+  policy: base
+  configuration: policies/base.yaml
+- id: debug_pclean_s50_f56
+  regime: gated
+  policy: ucb_judge_beta05
+  configuration: gates/ucb_judge_beta05_s50_f56.yaml
+- id: bon_improve_ucb_beta05
+  regime: ungated
+  policy: bon_improve_ucb_beta05
+  configuration: policies/bon_improve_ucb_beta05.yaml
+- id: bon_improve_ucb_beta05_s50_f56
+  regime: gated
+  policy: bon_improve_ucb_beta05
+  configuration: gates/bon_improve_ucb_beta05_s50_f56.yaml

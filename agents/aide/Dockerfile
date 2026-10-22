@@ -1,0 +1,32 @@
+FROM mlebench-env
+
+# where to put submission.csv, will be extracted
+ARG SUBMISSION_DIR
+ENV SUBMISSION_DIR=${SUBMISSION_DIR}
+# where to put any logs, will be extracted
+ARG LOGS_DIR
+ENV LOGS_DIR=${LOGS_DIR}
+# where to put any code, will be extracted
+ARG CODE_DIR
+ENV CODE_DIR=${CODE_DIR}
+# where to put any other agent-specific files, will not be necessarily extracted
+ARG AGENT_DIR
+ENV AGENT_DIR=${AGENT_DIR}
+
+RUN mkdir ${LOGS_DIR} ${CODE_DIR} ${AGENT_DIR}
+
+ARG CONDA_ENV_NAME=agent
+
+# Requirements for opencv
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+
+RUN python -m pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple --upgrade pip \
+    && pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+
+# The base image supplies the named conda environment.
+COPY ./src/ ${AGENT_DIR}/src/
+RUN conda run -n ${CONDA_ENV_NAME} pip install -e ${AGENT_DIR}/src/. && \
+    conda clean -afy
+
+# put all the agent files in the expected location
+COPY . ${AGENT_DIR}

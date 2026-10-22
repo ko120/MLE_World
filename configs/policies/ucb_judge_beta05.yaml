@@ -1,0 +1,6 @@
+schema_version: 1
+extends: debug_pclean.yaml
+overrides:
+  kwargs:
+    agent.ucb.all_failed_fallback: judge
+    agent.ucb.pool_policy: bon

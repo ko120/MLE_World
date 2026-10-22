@@ -1,0 +1,9 @@
+schema_version: 1
+extends: debug_pclean.yaml
+overrides:
+  kwargs:
+    agent.stage_policy.draft: parallel
+    agent.stage_policy.debug: parallel
+    agent.use_predicted_metric_argmax_pick: true
+    agent.ucb.all_failed_fallback: judge
+    agent.ucb.pool_policy: bon

@@ -1,0 +1,23 @@
+schema_version: 1
+extends: ../policies/pairwise.yaml
+overrides:
+  env_vars: {}
+  kwargs:
+    agent.execution_gate.enabled: true
+    agent.execution_gate.success_threshold: 0.5
+    agent.execution_gate.failure_threshold: 0.56
+remove:
+  env_vars: []
+  kwargs: []
+provenance:
+  cohort: stage_policy_selected_pmax8h_20260922
+  profile: aide-qwen3-vllm-sim-pmax8h-pairwise-s50-f56
+  configuration_sha256: b7778ac3f4c8f2bc0d1d11c538bdc97b851fd0d17d130f66eca0f6832e7db228
+  historical_aide_sha256: 58f5fdb237f8f664251fe2649cc897a2b6efa23e997914a9172d8b8cd75b52cc
+  normalized_fields:
+  - AIDE_MODEL_BASE_URLS
+  - AIDE_SIMULATOR_BASE_URL
+  - OPENAI_API_KEY
+  - OPENAI_BASE_URL
+  - dockerfile
+  - start

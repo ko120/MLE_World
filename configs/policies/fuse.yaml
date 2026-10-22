@@ -1,0 +1,69 @@
+schema_version: 1
+profile:
+  kwargs_type: omegaconf
+  env_vars:
+    TIME_LIMIT_SECS: '43200'
+    STEP_LIMIT: '1000000'
+    AIDE_DRAFT_MAX_TOKENS: '16384'
+    AIDE_SAMPLING: '{"temperature":1.0,"top_p":0.95,"top_k":40,"min_p":0.0,"max_tokens":8192}'
+    AIDE_MODEL_SAMPLING: '{"gpt-coderbf16-fb-vllm":{"temperature":1.0,"top_p":0.95,"top_k":40,"min_p":0.0,"max_tokens":32768}}'
+    AIDE_SHUTDOWN_RESERVE_S: '480'
+    AIDE_SIMULATOR_PROMPT_FORMAT: env_v1_reorder_excfirst_token
+    AIDE_EXC_SCORING: single_token
+    AIDE_EXC_SCORE_WORKERS: '8'
+    AIDE_SIMULATOR_SAMPLING: '{"temperature":0,"top_p":1.0,"top_k":-1,"min_p":0,"repetition_penalty":1.0,"presence_penalty":0,"frequency_penalty":0,"seed":0,"max_tokens":8192}'
+    AIDE_PCLEAN_SCORE: p_clean
+  kwargs:
+    agent.search.num_drafts: 5
+    agent.search.max_debug_depth: 3
+    agent.search.debug_prob: 0.5
+    agent.search.greedy_prob: 0.7
+    agent.time_limit: 43200
+    agent.steps: 1000000
+    exec.timeout: 3400
+    copy_data: false
+    agent.convert_system_to_user: true
+    agent.code.model: gpt-qwen3-vllm
+    agent.bon_candidate_review: true
+    agent.use_listwise_p_clean: false
+    agent.use_p_clean_argmax_pick: false
+    agent.improve_plan_axes: false
+    agent.real_validation_p_max_threshold: 'null'
+    agent.record_test_metric: true
+    agent.record_execution_cost: true
+    agent.check_data_leakage: true
+    agent.leakage_review_best: true
+    agent.leakage_reject_on_model: true
+    agent.submission_reject_on_model: true
+    agent.submission_review_temperature: 0.0
+    agent.ucb.metric_posterior.enabled: false
+    exec.simulator: true
+    exec.simulator_model: qwen3_5-4b-exc-token-sim
+    exec.simulator_only: true
+    agent.bon_oracle: sim
+    agent.use_best_of_n_listwise: true
+    agent.use_validate_on_best: true
+    agent.feedback.model: gpt-coderbf16-fb-vllm
+    agent.best_of_n_size: 4
+    agent.real_validation_interval: 1
+    agent.stage_policy.draft: fuse
+    agent.stage_policy.debug: fuse
+    agent.stage_policy.improve: fuse
+    agent.fuse_mode: synth
+    agent.fuse_prompt_style: typed_paco_v13
+    agent.fuse_style_params_by_stage.debug.debug_rules: improve_transfer
+    agent.fuse_include_candidate_plans: true
+    agent.fuse_retries: 3
+    agent.fuse_max_tokens: 8192
+provenance:
+  cohort: stage_policy_wave3_real1_sim8k_20260919
+  profile: aide-qwen3-vllm-seq-sim-pipeline-fixed-policy-fuse-real1-sim8k-8h
+  configuration_sha256: 5d5bc5b548b67544b8d623bb9d788f8463a017375a043b6686092334c1b6696d
+  historical_aide_sha256: 055e86fe729cf6c9d73ca2727b0847be78761c32c83ed90600b1fadec8debab3
+  normalized_fields:
+  - AIDE_MODEL_BASE_URLS
+  - AIDE_SIMULATOR_BASE_URL
+  - OPENAI_API_KEY
+  - OPENAI_BASE_URL
+  - dockerfile
+  - start

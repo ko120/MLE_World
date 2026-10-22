@@ -1,0 +1,322 @@
+# path to the task data directory
+data_dir: null
+
+# either provide a path to a plaintext file describing the task
+desc_file: null
+# or provide the task goal (and optionally evaluation information) as arguments
+goal: null
+eval: null
+
+log_dir: logs
+log_level: INFO
+workspace_dir: workspaces
+
+# whether to unzip any archives in the data directory
+preprocess_data: True
+# whether to copy the data to the workspace directory (otherwise it will be symlinked)
+# copying is recommended to prevent the agent from accidentally modifying the original data
+copy_data: True
+
+exp_name: null # a random experiment name will be generated if not provided
+
+# settings for code execution
+exec:
+  timeout: 3600
+  agent_file_name: runfile.py
+  format_tb_ipython: False
+  # Parallel real+simulator race. Default OFF — pure no-op for existing runs.
+  # When True, every exec starts the real child immediately. The simulator is
+  # admitted after `simulator_start_delay_s` only if real is still running; real
+  # wins if it returns within `simulator_deadline_s`, otherwise the real child is
+  # killed and the simulator's prediction is used.
+  simulator: False
+  simulator_model: null
+  simulator_deadline_s: 30.0
+  # Included in simulator_deadline_s, not added on top of it.
+  simulator_start_delay_s: 3.0
+  # Pure world-model rollout: no real child is started for node execution at
+  # all, so no race, no deadline, no start delay — the simulator's prediction
+  # IS the node result. Needs `simulator: True`. The only real execution left
+  # is agent.use_validate_on_best (turn it off too for a fully sim-only run)
+  # and the simulator's own abstain fallback, which runs the code for real
+  # rather than fabricate a buggy node when the sim backend is down.
+  simulator_only: False
+
+# agent hyperparams
+agent:
+  # Measurement only: small events, no historical CSV/code copies or extra grading.
+  record_execution_cost: False
+  # how many improvement iterations to run
+  steps: 20
+  steps_count_mode: journal # completed counts only successful committed outer steps
+  # total time available to agent
+  time_limit: 86400 # 24 hrs (purely informational, implementation is user's resp)
+  # whether to instruct the agent to use CV (set to 1 to disable)
+  k_fold_validation: 1
+  # whether to instruct the agent to generate a prediction function
+  expose_prediction: False
+  # whether to provide the agent with a preview of the data
+  data_preview: True
+  # whether to convert system messages into user messages
+  convert_system_to_user: False
+  # whether to obfuscate that we're doing kaggle
+  obfuscate: False
+
+  # LLM settings for coding
+  code:
+    model: gpt-4-turbo
+    temp: 0.5
+
+  # LLM settings for evaluating program output / tracebacks
+  feedback:
+    model: gpt-4-turbo
+    temp: 0.5
+
+  # Leakage review for extreme/best scores; submission review for best real nodes (ties too).
+  # Confirmed defects mark the node buggy and exclude it from publication/selection.
+  check_data_leakage: True
+  leakage_reject_on_model: True  # False explicitly opts into advisory-only findings
+  submission_reject_on_model: True  # False makes prediction-path findings advisory
+  submission_review_temperature: 0.0  # Overrides feedback sampling for this reviewer only
+  leakage_max_threshold: 0.999  # maximize: score >= threshold
+  leakage_min_threshold: 1e-6  # minimize: score <= threshold
+  leakage_review_best: True
+  leakage_timeout_s: 120.0  # shared by both source reviews, confirmation, and retries
+  leakage_max_tokens: 3072
+
+  # hyperparameters for the tree search
+  search:
+    max_debug_depth: 3
+    debug_prob: 0.5
+    num_drafts: 5
+    # After drafting/debugging: global best with this probability; otherwise
+    # uniformly choose one of the best good nodes from each draft tree.
+    # Set to 1.0 for greedy improve-parent selection.
+    greedy_prob: 0.8
+
+  # Best-of-N routing: WHAT runs at each stage (stage_policy) x WHERE the
+  # candidate evidence comes from (bon_oracle). One policy name per stage —
+  # overlaps and dead routes are unrepresentable; Agent validates the route
+  # at t=0 and logs it ("[stage policy] oracle=... routing: ...").
+  #   single     - one draw straight to execution (plain AIDE; oracle unused)
+  #   sequential - depth: one initial candidate + N-1 revisions using the
+  #                preceding candidate's code and predictive-oracle feedback.
+  #                Uses all N=best_of_n_size; repairs unusable candidates and
+  #                improves usable ones. Selects the best finite predicted
+  #                metric among usable candidates (official metric direction);
+  #                first usable if metrics/direction are unavailable. Only an
+  #                entirely unusable pool uses the least-buggy listwise judge.
+  #                This selection overrides global listwise/confidence flags.
+  #                Uses oracle feedback directly, without per-candidate reviews.
+  #                Invalid under bon_oracle=real; uses the shared sim/race commit.
+  #   parallel   - width: N draws in one call -> usability gate ->
+  #                first-usable or listwise pick (use_best_of_n_listwise)
+  #   pairwise   - width: N draws -> run-free pairwise tournament (pairwise_*)
+  #   fuse       - width: N draws -> synthesize ONE program from all N (fuse_*)
+  #   ucb        - width: N draws -> select signed normalized predicted
+  #                validation metric + beta * uncertainty (agent.ucb below)
+  stage_policy:
+    draft: single
+    debug: single
+    improve: single
+  # Opt in independently with stage_policy.improve: ucb (also draft/debug).
+  # sigma is an uncertainty PROXY, not a fitted metric standard deviation:
+  #   p_clean -> 1 - P(clean); p_max -> 1 - max P(exception class)
+  #   entropy -> Shannon entropy / log(number of scored exception classes)
+  # p_max also accepts the client spelling max_p. Independent of AIDE_PCLEAN_SCORE.
+  # mu = signed(metric - reference) / metric_scale; lower-is-better is negated.
+  # Reference: best validated real metric first, then a usable parent metric.
+  # Auto scale: abs(reference), else median abs(usable pool metrics), floored
+  # at 0.01. Set metric_scale to fix the units across steps.
+  # normalize_mu=true instead uses max(abs(ideal_metric - reference), scale_floor).
+  # Ideal defaults to 1 for maximize, 0 for minimize; override for other metrics.
+  # Decreases keep negative mu. Without a reference, use the existing pool scale.
+  # An explicit metric_scale overrides both auto modes. Effective mode/scale
+  # and ideal are recorded in each step's ucb.json.
+  # CLI: agent.ucb.improve.normalize_mu=true agent.ucb.improve.scale_floor=0.01
+  # beta=0 is metric-greedy; larger beta increases the uncertainty bonus.
+  # Null stage settings inherit the shared values. Policies remain opt-in.
+  ucb:
+    sigma: p_max
+    beta: 1.0
+    # judge changes only the entirely unusable pool; other UCB fallbacks stay.
+    all_failed_fallback: p_clean
+    # bon uses BoN metric eligibility and all its fallbacks, including the judge.
+    # With selection_rule=ucb, beta=0 then reproduces predicted-metric BoN.
+    pool_policy: review_filtered
+    metric_scale: null
+    normalize_mu: false
+    ideal_metric: null
+    scale_floor: 0.01
+    score_workers: 4
+    # Opt in: replace exception-based sigma with std(full WM metric samples)/S.
+    # Keep the current point metric as mu; beta=0 remains the existing greedy
+    # control and makes no sampling calls. S is the same pool scale used by mu.
+    # CLI: agent.ucb.metric_posterior.enabled=true (false restores old UCB).
+    # Full responses start before <exc_type>, and stop after </val_metric>.
+    # Clean finite metrics only; None/failures/truncations are counted separately.
+    # Any eligible prediction lacking min_valid samples makes the whole pool
+    # metric-greedy. Exception confidence still owns salvage/validation gates.
+    metric_posterior:
+      enabled: false
+      samples: 16
+      min_valid: 8
+      temperature: 1.0
+      max_tokens: 8192
+      timeout_s: 60.0  # Shared pool budget, capped before shutdown reserve.
+      seed: 0  # Combined with a stable hash of the original WM prompt.
+    draft: {sigma: null, beta: null, metric_scale: null, normalize_mu: null, ideal_metric: null, scale_floor: null}
+    debug: {sigma: null, beta: null, metric_scale: null, normalize_mu: null, ideal_metric: null, scale_floor: null}
+    improve: {sigma: null, beta: null, metric_scale: null, normalize_mu: null, ideal_metric: null, scale_floor: null}
+
+  # sim  = world-model prediction (needs exec.simulator=True)
+  # race = real exec vs sim, capped at exec.simulator_deadline_s: real result
+  #        if it returns within the deadline, else the sim prediction
+  # real = every candidate actually executes in its own workspace; the
+  #        winner's finished result is reused (no second execution)
+  bon_oracle: sim
+  best_of_n_size: 4
+  use_validate_on_best: True
+  # Optional real check after N steps without one, including predicted bugs.
+  # 0 disables; 1 checks every selected non-timeout prediction.
+  # With execution_gate enabled, periodic checks pass through its thresholds;
+  # otherwise periodic checks force real execution. Best checks remain real.
+  # Predicted TimeoutError vetoes every real check, including periodic checks.
+  # Requires use_validate_on_best or execution_gate; respects the run deadline.
+  real_validation_interval: 0
+  # Universal gate: applies to the selected simulated program at every stage
+  # and under every selector. exc_type=None uses success_threshold; every
+  # non-None exception uses failure_threshold. Predicted TimeoutError is always
+  # skipped, independently of thresholds and best/periodic checks.
+  # Execute if raw p_max < threshold or confidence is missing/invalid; equality
+  # accepts simulated feedback unless a best/explicit force check requires real.
+  # null ALWAYS executes that outcome except timeouts when enabled; both null
+  # executes every selected non-timeout program. Disabled uses the legacy gate.
+  # Requires exec.simulator=True; non-null thresholds require the scorer.
+  execution_gate:
+    enabled: false
+    success_threshold: null
+    failure_threshold: null
+  # Legacy stage gate, ignored when execution_gate.enabled=True.
+  # Also execute selected candidates with p_max < threshold.
+  # null disables; 0.95 is the first pilot. Missing/failed confidence runs real.
+  # Requires exec.simulator=True and use_validate_on_best=True; respects deadline.
+  real_validation_p_max_threshold: null
+  # Stages the gate covers: improve (default), all, or a comma-separated
+  # subset of draft,debug,improve. CLI: agent.real_validation_p_max_stages=all
+  real_validation_p_max_stages: improve
+  # List-wise winner pick among accepted candidates (`parallel` policy): one
+  # feedback-LLM call sees all of them and picks comparatively
+  # (arXiv:2506.12928); falls back to first-accepted on judge failure. Applies
+  # under every oracle (real: gate = exec + CSV + /validate; sim/race: gate =
+  # predicted usable, and the judge is told outputs are predictions).
+  use_best_of_n_listwise: True
+  # Listwise mode: True selects the best finite WM predicted_metric among usable
+  # predictions; False uses the LLM judge. Uses eval_lower_is_better for losses.
+  # All-failed pools always use the least-buggy LLM judge, with this flag on or off.
+  # Ties retain input order. No finite metrics/direction: first usable fallback.
+  # Overrides the global probability-argmax flag; explicit stage selectors
+  # (ucb/argmax) keep precedence. Candidate reviews have their own flag below.
+  use_predicted_metric_argmax_pick: False
+  use_observed_metric_argmax_pick: False # real candidate validation metrics
+  # Review every DRAWN candidate with the feedback model (same schema the
+  # committed node gets) and show the summary to the list-wise judge and the
+  # fuser. Costs N extra feedback-LLM calls per width step and ends the fuse
+  # arm's zero-judge-call property. Advisory only -- the acceptance gate is
+  # unchanged. ON by default since 2026-08-21: it alters the judge and fusion
+  # prompts and costs N extra feedback calls per width step, and the 820-set
+  # replay measured no selection gain -- set False to get the pre-08-21 prompts
+  # and cost back.
+  bon_candidate_review: True
+  # Legacy profile compatibility only; confidence is omitted from listwise prompts.
+  use_listwise_p_clean: False
+  # Pick the BoN winner by argmax of P(runs clean) INSTEAD of the list-wise
+  # judge: zero feedback-LLM calls per width step, N scoring calls. Needs
+  # exec.simulator + the default simulator prompt format. The ranking scalar
+  # follows AIDE_PCLEAN_SCORE (p_clean default, max_p = the A/B arm); an
+  # all-failed pool always ranks on p_clean. Beats
+  # use_best_of_n_listwise when both are on; use_line_frac_salvage still owns
+  # the all-crash case when on; nothing scored -> first-usable, never the
+  # judge. Off by default — it changes which candidate the arm commits.
+  # Pair with bon_candidate_review: False for a truly judge-free arm.
+  use_p_clean_argmax_pick: False
+  # Legacy probability-argmax salvage: use crash-line/code-length for failed pools.
+  # Listwise mode always uses the least-buggy judge for an all-failed pool.
+  use_line_frac_salvage: False
+  # Decorrelate improve-stage BoN draws (prompt family improve_axes_v1):
+  # candidate 0 stays the plain draw (judge-failure fallback + per-step paired
+  # control), candidates 1..N-1 each get one fixed improvement-direction hint
+  # (agent.py IMPROVE_EXPLORE_AXES). Motivation: N same-prompt siblings ≈ 5
+  # effective samples (holdout sibling clustering) — width buys little
+  # exploration without forced diversity. Width policies at improve only;
+  # default off keeps every existing arm's prompts byte-identical.
+  improve_plan_axes: False
+
+  # WM-Fuse parameters (stage_policy.<stage>: fuse; docs/exp/wm_fuse_plan.md
+  # §4): instead of executing the picked candidate, synthesize ONE program
+  # from all N (code, oracle outcome) pairs and execute that. Deploy on
+  # improve only: fusion's whole measured deficit vs copy-the-pick is draft
+  # (11/27, p=0.014).
+  # ⚠️ NO verify gate and NO fallback — the fused program runs unscreened, so
+  # the floor is NOT the select arm. Only an unparseable response is retried
+  # (fuse_retries); after that the best-effort code runs as is.
+  # Cost per fused step: +1 code-model call, and −1 feedback call (synth fusion
+  # never uses picked_idx, so the selection call is skipped on those steps).
+  # Under bon_oracle=real the fused program needs its own execution: N+1 execs.
+  # synth = no privileged candidate (incumbent); backbone = picked candidate is
+  # the declared edit target. The current v13 prompt accepts synth only.
+  fuse_mode: "synth"
+  # typed_paco_v13 contains the improve rules and debug control, and labels
+  # WM reports and a WM parent as hypothetical instead of "logged output".
+  fuse_prompt_style: "typed_paco_v13"
+  # Stage overrides select the v13 debug rules without changing other stages.
+  fuse_prompt_style_by_stage: {}
+  fuse_style_params_by_stage: {}
+  # True matches paco_parent_v8 (rule 2 promises one uniform
+  # plan/analysis/code/output layout for the parent and every candidate);
+  # False is the paco_parent_noplan_v7 ablation. Per-candidate `analysis` is
+  # never available online (AIDE reviews only the picked candidate), so that
+  # slot stays empty either way.
+  fuse_include_candidate_plans: True
+  # Generation attempts for the fusion call. Only an unparseable response is
+  # retried; there is NO fallback to the BoN pick, so after the last attempt the
+  # best-effort code region is executed as is (same contract as
+  # plan_and_code_query's retries=3).
+  fuse_retries: 3
+  # Output cap for the fusion call (the offline harness declared 8192 explicitly
+  # rather than inheriting AIDE_SAMPLING's; match it).
+  fuse_max_tokens: 8192
+
+  # Pairwise selection (stage_policy.<stage>: pairwise), using Figure 7 of
+  # arXiv:2608.13940 plus candidate execution output. Adjacent A/B comparisons
+  # advance one winner; N candidates need N-1 calls. No confidence scores or
+  # revival matches. The viability gate and listwise judge are bypassed.
+  pairwise_scheme: bracket
+  # Legacy setting accepted when loading old profiles; pairwise ignores it.
+  pairwise_confidence_gate: 0.7
+  # Show each candidate's world-model output beside its plan and code.
+  # Real-oracle output is labeled as observed. False omits execution reports.
+  pairwise_include_wm_report: True
+  # feedback = the model listwise_pick uses (like-for-like selector swap);
+  # code = the coder, matching the offline bench.
+  pairwise_model: feedback
+  # Hard ceiling on comparisons per step (0 = unlimited). On exhaustion choose
+  # the first remaining candidate. Malformed responses advance the left one.
+  pairwise_max_calls: 24
+  # Room for the Figure 7 reasoning and a final boxed A/B answer.
+  pairwise_max_tokens: 8192
+
+  # Competition's official eval metric + direction. Normally injected per-task
+  # by the mle-bench harness (agents/run.py) from competition.grader; null here
+  # means standalone runs fall back to the per-node LLM-judged metric/direction.
+  eval_metric: null
+  eval_lower_is_better: null
+
+  # Grade every submission-writing node on the private test set (/score) and
+  # store it as journal.Node.test_metric. Pure instrumentation — never enters a
+  # prompt, never selects a node — but it is paid synchronously out of the
+  # agent's time budget (21-51 s/call on denoising-dirty-documents' 5.8 M-row
+  # answer key). ON by default: runs are expected to carry a held-out score
+  # for post-hoc analysis. Set False to reclaim that budget — then no /score
+  # request is issued at all and test_metric stays null.
+  record_test_metric: True

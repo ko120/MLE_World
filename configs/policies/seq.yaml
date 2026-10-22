@@ -1,0 +1,67 @@
+schema_version: 1
+profile:
+  kwargs_type: omegaconf
+  env_vars:
+    TIME_LIMIT_SECS: '43200'
+    STEP_LIMIT: '1000000'
+    AIDE_DRAFT_MAX_TOKENS: '16384'
+    AIDE_SAMPLING: '{"temperature":1.0,"top_p":0.95,"top_k":40,"min_p":0.0,"max_tokens":8192}'
+    AIDE_MODEL_SAMPLING: '{"gpt-coderbf16-fb-vllm":{"temperature":1.0,"top_p":0.95,"top_k":40,"min_p":0.0,"max_tokens":32768}}'
+    AIDE_SHUTDOWN_RESERVE_S: '480'
+    AIDE_SIMULATOR_PROMPT_FORMAT: env_v1_reorder_excfirst_token
+    AIDE_EXC_SCORING: single_token
+    AIDE_EXC_SCORE_WORKERS: '8'
+    AIDE_SIMULATOR_SAMPLING: '{"temperature":0,"top_p":1.0,"top_k":-1,"min_p":0,"repetition_penalty":1.0,"presence_penalty":0,"frequency_penalty":0,"seed":0,"max_tokens":8192}'
+    AIDE_PCLEAN_SCORE: p_clean
+  kwargs:
+    agent.search.num_drafts: 5
+    agent.search.max_debug_depth: 3
+    agent.search.debug_prob: 0.5
+    agent.search.greedy_prob: 0.7
+    agent.time_limit: 43200
+    agent.steps: 1000000
+    exec.timeout: 3400
+    copy_data: false
+    agent.convert_system_to_user: true
+    agent.code.model: gpt-qwen3-vllm
+    agent.bon_candidate_review: true
+    agent.use_listwise_p_clean: false
+    agent.use_p_clean_argmax_pick: false
+    agent.improve_plan_axes: false
+    agent.real_validation_p_max_threshold: 'null'
+    agent.record_test_metric: true
+    agent.record_execution_cost: true
+    agent.check_data_leakage: true
+    agent.leakage_review_best: true
+    agent.leakage_reject_on_model: true
+    agent.submission_reject_on_model: true
+    agent.submission_review_temperature: 0.0
+    agent.ucb.metric_posterior.enabled: false
+    exec.simulator: true
+    exec.simulator_model: qwen3_5-4b-exc-token-sim
+    exec.simulator_only: true
+    agent.bon_oracle: sim
+    agent.use_best_of_n_listwise: true
+    agent.use_validate_on_best: true
+    agent.use_predicted_metric_argmax_pick: false
+    agent.stage_policy.draft: sequential
+    agent.stage_policy.debug: sequential
+    agent.stage_policy.improve: sequential
+    agent.execution_gate.enabled: false
+    agent.execution_gate.success_threshold: 'null'
+    agent.execution_gate.failure_threshold: 'null'
+    agent.feedback.model: gpt-coderbf16-fb-vllm
+    agent.best_of_n_size: 4
+    agent.real_validation_interval: 1
+provenance:
+  cohort: stage_policy_seq_real1_recovery_20260920
+  profile: aide-qwen3-vllm-seq-sim-pipeline-fixed-policy-sequential-real1-sim8k-8h
+  configuration_sha256: 02b6a0d149ea4ceea112ad64714905da74469e001eb4ed48cbecf2286046c7c8
+  historical_aide_sha256: 58f5fdb237f8f664251fe2649cc897a2b6efa23e997914a9172d8b8cd75b52cc
+  normalized_fields:
+  - AIDE_MODEL_BASE_URLS
+  - AIDE_SIMULATOR_BASE_URL
+  - OPENAI_API_KEY
+  - OPENAI_BASE_URL
+  - dockerfile
+  - start
